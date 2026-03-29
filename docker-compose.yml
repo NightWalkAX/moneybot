@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  nanobot:
+    image: jerryin/nanobot
+    container_name: nanobot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+    volumes:
+      - ./data:/app/data
+      - ./skills:/app/skills
+      - ./memory:/app/memory
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: telegram/Dockerfile
+    container_name: telegram-bot
+    restart: unless-stopped
+    depends_on:
+      - nanobot
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ROUTER_MODEL=${ROUTER_MODEL:-qwen/qwen2.5-7b-instruct:free}
+      - PLANNER_MODEL=${PLANNER_MODEL:-meta-llama/llama-3-8b-instruct}
+      - CODING_MODEL=${CODING_MODEL:-mistralai/mistral-7b-instruct}
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: ["python", "-m", "telegram.bot"]
